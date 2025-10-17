@@ -84,16 +84,16 @@ contract LendingPool is DataStorage, ReentrancyGuard{
         uint256 totalReserve = reserve[address(this)];
         uint256 reward;
 
-        if (totalReserve >= 20000 * 1e18 && totalReserve < 40000 * 1e18){
-            reward =  (spread / 100)  * 10;
-        } else if (totalReserve >= 40000 * 1e18 && totalReserve < 60000 * 1e18){
-             reward = (spread / 100)  * 20;
-        } else if (totalReserve >= 60000 * 1e18 && totalReserve < 80000 * 1e18){
-            reward = (spread / 100)  * 30;
-        } else if (totalReserve >= 80000 * 1e18 && totalReserve < 100000 * 1e18){
-            reward = (spread / 100)  * 40;
+        if (totalReserve >= 20000 * 1e6 && totalReserve < 40000 * 1e6){
+            reward =  (spread * 10) / 100;
+        } else if (totalReserve >= 40000 * 1e6 && totalReserve < 60000 * 1e6){
+             reward = (spread * 20)  / 100;
+        } else if (totalReserve >= 60000 * 1e6 && totalReserve < 80000 * 1e6){
+            reward = (spread * 30)  / 100;
+        } else if (totalReserve >= 80000 * 1e6 && totalReserve < 100000 * 1e6){
+            reward = (spread * 40)  / 100;
         } else {
-            reward = (spread / 100)  * 50;
+            reward = (spread * 50)  / 100;
         }
 
         address currentPledgor = dataStorage.getPledgeById(currentId).pledgor;
