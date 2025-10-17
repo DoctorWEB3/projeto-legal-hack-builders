@@ -1,0 +1,27 @@
+{
+  "name": "projeto-eth-latam",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx hardhat node",
+    "test": "npx hardhat test",
+    "deploy": "npx hardhat ignition deploy ignition/modules/DeployXAGPrice.ts --network amoy",
+    "compile": "npx hardhat compile"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@types/node": "^24.7.1",
+    "hardhat": "^2.26.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^1.4.0",
+    "@openzeppelin/contracts": "^5.4.0",
+    "dotenv": "^17.2.3"
+  }
+}
