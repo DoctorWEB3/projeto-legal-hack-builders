@@ -8,7 +8,7 @@ import './DataStorage.sol';
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 interface IDataStorage{
-    function getPledgeById(uint256 pledgeId) external view returns (Pledge memory);
+    function receiveData(Pledge memory pledgeAdded, uint256 pledgeId) external;
 }
 
 contract LendingPool is DataStorage, ReentrancyGuard{
@@ -19,7 +19,7 @@ contract LendingPool is DataStorage, ReentrancyGuard{
     IERC20 private immutable usdcAddress;
 
     // ATTORNEYCOIN
-    address usdcToken; // = 0xABS123;
+    address usdcToken = 0x9Dfc8C3143E01cA01A90c3E313bA31bFfD9C1BA9; // = 0xABS123;
 
     constructor(address _dataStorage){
         pledgee = msg.sender;
@@ -78,7 +78,7 @@ contract LendingPool is DataStorage, ReentrancyGuard{
         });
     }
 
-    function borrow(uint256 amount, uint256 spread, uint256 currentId) external {
+    function borrow(address pledgor, uint256 amount, uint256 spread, uint256 currentId) external {
         require(amount <= reserve[address(this)], "It doesn't have sufficient funds in reserve");
 
         uint256 totalReserve = reserve[address(this)];
@@ -96,13 +96,14 @@ contract LendingPool is DataStorage, ReentrancyGuard{
             reward = (spread * 50)  / 100;
         }
 
-        address currentPledgor = dataStorage.getPledgeById(currentId).pledgor;
-        usdcAddress.transfer(currentPledgor, amount);
+        usdcAddress.transfer(pledgor, amount);
         uint256 pledgeeFee = spread - reward;
 
         distributeRewards(reward);
 
         usdcAddress.transfer(pledgee, pledgeeFee);
+
+        dataStorage.receiveData(pledges[currentId], currentId);
 
         totalReserve -= (amount + reward + pledgeeFee);
     }

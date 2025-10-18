@@ -10,7 +10,7 @@ interface IXAGPrice{
 }
 
 interface ILendingPool{
-    function borrow(uint256 amount, uint256 spread, uint256 currentId) external;
+    function borrow(address pledgor, uint256 amount, uint256 spread, uint256 currentId) external;
 }
 
 interface ISilver {
@@ -76,9 +76,7 @@ contract PledgePlatform is Silver, DataStorage{
         uint256 borrowedAmount = (amount * metalPrice) / 1e6;
         uint256 liquidValue = calculateCreditWithSpread(borrowedAmount, spread);
 
-        dataStorage.receiveData(pledges[currentId], currentId);
-
-        lendingPool.borrow(liquidValue, spread, currentId);
+        lendingPool.borrow(_pledgor, liquidValue, spread, currentId);
     }
 
     function calculateCreditWithSpread(uint256 amount, uint256 spreadPercent) internal pure returns (uint256 liquidValue) {
