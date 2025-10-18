@@ -18,8 +18,10 @@ contract LendingPool is DataStorage, ReentrancyGuard{
     IDataStorage public dataStorage;
     IERC20 private immutable usdcAddress;
 
-    // ATTORNEYCOIN
-    address usdcToken = 0x9Dfc8C3143E01cA01A90c3E313bA31bFfD9C1BA9; // = 0xABS123;
+    mapping(address => uint256) public reserve;
+    mapping(address => UserData) public userBalances;
+
+    address usdcToken = 0x9Dfc8C3143E01cA01A90c3E313bA31bFfD9C1BA9;
 
     constructor(address _dataStorage){
         pledgee = msg.sender;
@@ -37,12 +39,11 @@ contract LendingPool is DataStorage, ReentrancyGuard{
 
     function lendUSDC(uint256 amount) external nonReentrant {
         require(usdcAddress.balanceOf(msg.sender) >= amount, "Amount must be greater than zero");
-        usdcAddress.approve(address(this), amount);
+        //usdcAddress.approve(address(this), amount);
         
         usdcAddress.allowance(msg.sender, address(this));
         require(usdcAddress.allowance(msg.sender, address(this)) >= amount, "Insufficient allowance");
         
-
         usdcAddress.transferFrom(msg.sender, address(this), amount);
 
         reserve[address(this)] += amount;
@@ -54,9 +55,7 @@ contract LendingPool is DataStorage, ReentrancyGuard{
             principal: amountDeposited
         });
 
-
         emit PaymentReceived(msg.sender, amount);
-
     }
 
     function withdraw(uint256 amount) external nonReentrant {
@@ -82,30 +81,33 @@ contract LendingPool is DataStorage, ReentrancyGuard{
         require(amount <= reserve[address(this)], "It doesn't have sufficient funds in reserve");
 
         uint256 totalReserve = reserve[address(this)];
-        uint256 reward;
+        uint256 rewardPercent;
 
         if (totalReserve >= 20000 * 1e6 && totalReserve < 40000 * 1e6){
-            reward =  (spread * 10) / 100;
+            rewardPercent = 10;
         } else if (totalReserve >= 40000 * 1e6 && totalReserve < 60000 * 1e6){
-             reward = (spread * 20)  / 100;
+            rewardPercent = 20;
         } else if (totalReserve >= 60000 * 1e6 && totalReserve < 80000 * 1e6){
-            reward = (spread * 30)  / 100;
+            rewardPercent = 30;
         } else if (totalReserve >= 80000 * 1e6 && totalReserve < 100000 * 1e6){
-            reward = (spread * 40)  / 100;
+            rewardPercent = 40;
         } else {
-            reward = (spread * 50)  / 100;
+            rewardPercent = 50;
         }
 
-        usdcAddress.transfer(pledgor, amount);
-        uint256 pledgeeFee = spread - reward;
+        uint256 feeAmount = (amount * spread) / 100;
+        uint256 rewardAmount = (feeAmount * rewardPercent) / 100;
+        uint256 pledgeeFee = feeAmount - rewardAmount;
 
-        distributeRewards(reward);
+        usdcAddress.transfer(pledgor, amount);
+
+        distributeRewards(rewardAmount);
 
         usdcAddress.transfer(pledgee, pledgeeFee);
 
         dataStorage.receiveData(pledges[currentId], currentId);
 
-        totalReserve -= (amount + reward + pledgeeFee);
+        totalReserve -= (amount + feeAmount);
     }
 
     function distributeRewards(uint256 totalReward) internal nonReentrant {
@@ -118,8 +120,9 @@ contract LendingPool is DataStorage, ReentrancyGuard{
 
         for (uint256 i = 0; i < investors.length; i++) {
             address investor = investors[i];
-            uint256 share = (userBalances[investor].principal /*   * 1e18   */) / totalReserve; // percentual (escala 18)
-            uint256 reward = (totalReward * share) / 1e18; // recompensa proporcional
+            uint256 principal = userBalances[investor].principal;
+            uint256 share = (principal * 1e6) / totalReserve;
+            uint256 reward = (totalReward * share) / 1e6;
             usdcAddress.transfer(userBalances[investor].user, reward);
             totalDistributed += reward;
         }

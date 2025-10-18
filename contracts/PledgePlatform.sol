@@ -24,7 +24,6 @@ interface IDataStorage{
 
 contract PledgePlatform is Silver, DataStorage{
 
-
     ISilver public silver;
     IXAGPrice public xagPrice;
     ILendingPool public lendingPool;
@@ -43,37 +42,34 @@ contract PledgePlatform is Silver, DataStorage{
         _;
     }
 
-    function pledgeRegistry(address _pledgor, uint256 amount, /*uint256 _redemption, */uint256 spread) external onlyPledgee{
+    function pledgeRegistry(address _pledgor, uint256 amount, uint256 spread) external onlyPledgee{
         require(amount > 0, "This quantity is invalid");
-        //require(_redemption > block.timestamp, "The redemption date is invalid");
 
         silver.changeWhitelist(_pledgor, true);
 
         uint256 currentId = idByPledgor[_pledgor];
 
-    if (currentId == 0) {
-        // novo registro
-        pledges[agreementId] = Pledge({
-            pledgor: _pledgor,
-            quantityInOunces: amount,
-            pledgeDate: block.timestamp,
-            redemptionDate: block.timestamp + 365 days,
-            agreementId: agreementId
-        });
+        if (currentId == 0) {
+            pledges[agreementId] = Pledge({
+                pledgor: _pledgor,
+                quantityInOunces: amount,
+                pledgeDate: block.timestamp,
+                redemptionDate: block.timestamp + 365 days,
+                agreementId: agreementId
+            });
 
-        idByPledgor[_pledgor] = agreementId;
-        agreementId++; // incrementa só na primeira vez
-    } else {
-        // atualização do registro existente
-        pledges[currentId].quantityInOunces = amount;
-        pledges[currentId].redemptionDate = block.timestamp + 365 days;
-        pledges[currentId].pledgeDate = block.timestamp;
-    }
+            idByPledgor[_pledgor] = agreementId;
+            agreementId++;
+        } else {
+            pledges[currentId].quantityInOunces = amount;
+            pledges[currentId].redemptionDate = block.timestamp + 365 days;
+            pledges[currentId].pledgeDate = block.timestamp;
+        }
 
         silver.mint(_pledgor, amount);
 
-        uint256 metalPrice = xagPrice.getXAGPriceUpdated() * 10000;
-        uint256 borrowedAmount = (amount * metalPrice) / 1e6;
+        uint256 priceRaw = xagPrice.getXAGPriceUpdated();
+        uint256 borrowedAmount = (amount * priceRaw) / 1e14;
         uint256 liquidValue = calculateCreditWithSpread(borrowedAmount, spread);
 
         lendingPool.borrow(_pledgor, liquidValue, spread, currentId);

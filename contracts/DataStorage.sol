@@ -23,9 +23,6 @@ contract DataStorage{
     mapping(uint256 => Pledge) public pledges;
     mapping(address => uint256) public idByPledgor;
 
-    mapping(address => uint256) public reserve;
-    mapping(address => UserData) public userBalances;
-
     address[] public investors;
 
     constructor(){
