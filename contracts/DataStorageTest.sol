@@ -30,7 +30,6 @@ contract DataStorage{
 
     mapping(address => uint256) public reserve;
     mapping(address => UserData) public userBalances;
-    mapping (address => bool) public isInvestor;
     mapping(address => uint256) public rewards;
 
     mapping(address => uint256) public redemptions;

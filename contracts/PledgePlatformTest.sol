@@ -49,6 +49,8 @@ contract PledgePlatform is Silver, DataStorage{
 
         silver.changeWhitelist(_pledgor, true);
 
+        //uint256 currentId = idByPledgor[_pledgor];
+
             pledges[agreementId] = Pledge({
                 pledgor: _pledgor,
                 quantityInOunces: amount,
@@ -58,16 +60,21 @@ contract PledgePlatform is Silver, DataStorage{
                 redemptionApproved: false
             });
 
-            //uint256 currentId = idByPledgor[_pledgor];
             idByPledgor[_pledgor] = agreementId;
             agreementId++;
         
         silver.mint(_pledgor, amount);
 
         uint256 priceRaw = xagPrice.getXAGPriceUpdated();
-        uint256 usdcAmount = (amount * priceRaw) / 1e14;
+        uint256 borrowedAmount = (amount * priceRaw) / 1e14;
+        uint256 liquidValue = calculateCreditWithSpread(borrowedAmount, spread);
 
-        lendingPool.borrow(_pledgor, usdcAmount, spread);
+        lendingPool.borrow(_pledgor, liquidValue, spread);
+    }
+
+    function calculateCreditWithSpread(uint256 amount, uint256 spreadPercent) internal pure returns (uint256 liquidValue) {
+        require(spreadPercent <= 12, "invalid spread");
+        liquidValue = (amount * (100 - spreadPercent)) / 100;
     }
 
     function getPledgeById(uint256 pledgeId) external view returns (Pledge memory){

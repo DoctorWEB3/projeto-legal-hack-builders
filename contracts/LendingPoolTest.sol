@@ -51,10 +51,9 @@ contract LendingPool is DataStorage, ReentrancyGuard{
             //investorId: investorId
         });
 
-        if (!isInvestor[msg.sender]) {
-            investors.push(msg.sender);
-            isInvestor[msg.sender] = true;
-        }
+        investors.push(msg.sender);
+
+        //investorId++;
 
         emit PaymentReceived(msg.sender, amount);
     }
@@ -78,47 +77,41 @@ contract LendingPool is DataStorage, ReentrancyGuard{
         });
     }
 
-    function borrow(address pledgor, uint256 usdcAmount, uint256 spread) external virtual returns (bool){
-        require(usdcAmount <= reserve[address(this)], "It doesn't have sufficient funds in reserve");
+    function borrow(address pledgor, uint256 amount, uint256 spread) external virtual returns (bool){
+        require(amount <= reserve[address(this)], "It doesn't have sufficient funds in reserve");
 
         uint256 totalReserve = reserve[address(this)];
         totalReserve -= pendingRewards;
 
-        uint256 liquidValue = calculateCreditWithSpread(usdcAmount, spread);
-        uint256 spreadAmount = usdcAmount - liquidValue;
-
         uint256 rewardPercent;
 
-        if (spreadAmount < 20000 * 1e6){
+        if (spread < 20000 * 1e6){
             rewardPercent = 5;
-        } else if (spreadAmount >= 20000 * 1e6 && spreadAmount < 40000 * 1e6){
+        } else if (spread >= 20000 * 1e6 && spread < 40000 * 1e6){
             rewardPercent = 10;
-        } else if (spreadAmount >= 40000 * 1e6 && spreadAmount < 60000 * 1e6){
+        } else if (spread >= 40000 * 1e6 && spread < 60000 * 1e6){
             rewardPercent = 20;
-        } else if (spreadAmount >= 60000 * 1e6 && spreadAmount < 80000 * 1e6){
+        } else if (spread >= 60000 * 1e6 && spread < 80000 * 1e6){
             rewardPercent = 30;
-        } else if (spreadAmount >= 80000 * 1e6 && spreadAmount < 100000 * 1e6){
+        } else if (spread >= 80000 * 1e6 && spread < 100000 * 1e6){
             rewardPercent = 40;
         } else {
             rewardPercent = 50;
         }
 
-        uint256 pledgeeFee = (spreadAmount * (100 - rewardPercent)) / 100;
-        uint256 rewardAmount = spreadAmount - pledgeeFee;
+        uint256 feeAmount = (amount * spread) / 100;
+        uint256 rewardAmount = (feeAmount * rewardPercent) / 100;
 
-        usdcAddress.transfer(pledgor, liquidValue);
+        uint256 pledgeeFee = feeAmount - rewardAmount;
+
+        usdcAddress.transfer(pledgor, amount);
 
         distributeRewards(rewardAmount);
 
         usdcAddress.transfer(pledgee, pledgeeFee);
 
-        totalReserve -= usdcAmount;
+        totalReserve -= (amount + feeAmount);
         return true;
-    }
-
-    function calculateCreditWithSpread(uint256 amount, uint256 spreadPercent) internal pure returns (uint256 liquidValue) {
-        require(spreadPercent <= 12, "Invalid spread");
-        liquidValue = (amount * (100 - spreadPercent)) / 100;
     }
 
     function distributeRewards(uint256 totalReward) internal nonReentrant returns (uint256){
