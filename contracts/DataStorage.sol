@@ -25,7 +25,7 @@ contract DataStorage{
     uint256 public pendingRewards;
 
     mapping(uint256 => Pledge) public pledges;
-    mapping(address => uint256) public idByPledgor;
+    mapping(address => uint256[]) public idByPledgor;
 
     mapping(address => uint256) public reserve;
     mapping(address => UserData) public userBalances;

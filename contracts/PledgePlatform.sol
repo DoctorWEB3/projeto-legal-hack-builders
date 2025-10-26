@@ -59,7 +59,7 @@ contract PledgePlatform is Silver, DataStorage{
             });
 
             //uint256 currentId = idByPledgor[_pledgor];
-            idByPledgor[_pledgor] = agreementId;
+            idByPledgor[_pledgor].push(agreementId);
             agreementId++;
         
         silver.mint(_pledgor, amount);
@@ -74,7 +74,7 @@ contract PledgePlatform is Silver, DataStorage{
         return pledges[pledgeId];
     }
 
-    function getPledgorById(address pledgor) external view returns (uint256) {
+    function getPledgorById(address pledgor) external view returns (uint256[] memory) {
         return idByPledgor[pledgor];
     }
 
