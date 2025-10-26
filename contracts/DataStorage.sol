@@ -21,7 +21,6 @@ contract DataStorage{
 
     address public pledgee;
     uint256 public agreementId = 1;
-    //uint256 public investorId = 1;
 
     uint256 public pendingRewards;
 
