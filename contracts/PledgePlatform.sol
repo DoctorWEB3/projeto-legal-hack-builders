@@ -53,7 +53,7 @@ contract PledgePlatform is Silver, DataStorage{
                 pledgor: _pledgor,
                 quantityInOunces: amount,
                 pledgeDate: block.timestamp,
-                redemptionDate: block.timestamp + 365 days,
+                redemptionDate: block.timestamp + 60 seconds,
                 agreementId: agreementId,
                 redemptionApproved: false,
                 ouncePrice: priceRaw
@@ -78,32 +78,43 @@ contract PledgePlatform is Silver, DataStorage{
     }
 
     function amortizePledge(uint256 amount, uint256 pledgeId) external virtual returns (uint256) {
-    require(msg.sender == pledges[pledgeId].pledgor, "Address without registry");
+        require(msg.sender == pledges[pledgeId].pledgor, "Address without registry");
 
-    uint256 totalDebtUSDC = (pledges[pledgeId].quantityInOunces * pledges[pledgeId].ouncePrice) / 1e14;
-    uint256 paidSoFar = paymentsMade[msg.sender][pledgeId];
-    uint256 paymentsLeft = totalDebtUSDC - paidSoFar;
+        if (pledges[pledgeId].redemptionApproved == true){
+            revert("This pledge warranty was already executed");
+        }
 
-    require(amount <= paymentsLeft, "Amount overflow");
+        uint256 totalDebtUSDC = (pledges[pledgeId].quantityInOunces * pledges[pledgeId].ouncePrice) / 1e14;
+        uint256 paidSoFar = paymentsMade[msg.sender][pledgeId];
+        uint256 paymentsLeft = totalDebtUSDC - paidSoFar;
 
-    usdcAddress.transferFrom(msg.sender, address(this), amount);
-    usdcAddress.approve(address(this), amount);
-    usdcAddress.transferFrom(address(this), address(lendingPool), amount);
+        require(amount <= paymentsLeft, "Amount overflow");
 
-    lendingPool.updateReserve(amount);
+        usdcAddress.transferFrom(msg.sender, address(this), amount);
+        usdcAddress.approve(address(this), amount);
+        usdcAddress.transferFrom(address(this), address(lendingPool), amount);
 
-    paymentsMade[msg.sender][pledgeId] += amount;
+        lendingPool.updateReserve(amount);
 
-    if (paymentsMade[msg.sender][pledgeId] >= totalDebtUSDC) {
-        pledges[pledgeId].redemptionApproved = true;
-    } else {
-        pledges[pledgeId].redemptionApproved = false;
+        paymentsMade[msg.sender][pledgeId] += amount;
+
+        if (paymentsMade[msg.sender][pledgeId] >= totalDebtUSDC) {
+            pledges[pledgeId].redemptionApproved = true;
+        } else {
+            pledges[pledgeId].redemptionApproved = false;
+        }
+
+        return paymentsMade[msg.sender][pledgeId];
     }
 
-    return paymentsMade[msg.sender][pledgeId];
-}
+    function executeWarranty(uint256 pledgeId) external onlyPledgee returns (bool) {
+        require(pledgeId == pledges[pledgeId].agreementId, "This ID is not registered");
+        if (pledges[pledgeId].redemptionApproved == true){
+            revert("Pledge is still active");
+        }
+        require(block.timestamp >= pledges[pledgeId].redemptionDate, "The time to redemption is already elapsed");
 
-
-
+        return pledges[pledgeId].redemptionApproved = true;
+    }
 
 }
