@@ -85,12 +85,10 @@ contract LendingPool is DataStorage, ReentrancyGuard {
         uint256 pledgeeFee = (spreadAmount * (100 - rewardPercent)) / 100;
         uint256 rewardAmount = spreadAmount - pledgeeFee;
 
-        // 🔹 Transferências reais de USDC
         usdcAddress.transfer(pledgor, liquidValue);
         distributeRewards(rewardAmount);
         usdcAddress.transfer(pledgee, pledgeeFee);
 
-        // ✅ Ajuste: subtrai apenas o que saiu efetivamente do contrato
         reserve[address(this)] -= (liquidValue + pledgeeFee);
 
         return true;

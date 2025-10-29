@@ -25,7 +25,6 @@ contract PledgePlatform is Silver, DataStorage{
     ISilver public silver;
     IXAGPrice public xagPrice;
     ILendingPool public lendingPool;
-    //IDataStorage public dataStorage;
     IERC20 private immutable usdcAddress;
 
     address usdcToken = 0x9Dfc8C3143E01cA01A90c3E313bA31bFfD9C1BA9;
@@ -35,7 +34,6 @@ contract PledgePlatform is Silver, DataStorage{
         silver = ISilver(_silver);
         xagPrice = IXAGPrice(_xagPrice);
         lendingPool = ILendingPool(_lendingPool);
-        //dataStorage = IDataStorage(_dataStorage);
         usdcAddress = IERC20(usdcToken);
     }
 
@@ -49,22 +47,23 @@ contract PledgePlatform is Silver, DataStorage{
 
         silver.changeWhitelist(_pledgor, true);
 
+        uint256 priceRaw = xagPrice.getXAGPriceUpdated();
+
             pledges[agreementId] = Pledge({
                 pledgor: _pledgor,
                 quantityInOunces: amount,
                 pledgeDate: block.timestamp,
                 redemptionDate: block.timestamp + 365 days,
                 agreementId: agreementId,
-                redemptionApproved: false
+                redemptionApproved: false,
+                ouncePrice: priceRaw
             });
 
-            //uint256 currentId = idByPledgor[_pledgor];
             idByPledgor[_pledgor].push(agreementId);
             agreementId++;
         
         silver.mint(_pledgor, amount);
 
-        uint256 priceRaw = xagPrice.getXAGPriceUpdated();
         uint256 usdcAmount = (amount * priceRaw) / 1e14;
 
         lendingPool.borrow(_pledgor, usdcAmount, spread);
@@ -78,30 +77,33 @@ contract PledgePlatform is Silver, DataStorage{
         return idByPledgor[pledgor];
     }
 
-    function amortizePledge(uint256 amount, uint256 pledgeId) external virtual {
-        require(msg.sender == pledges[pledgeId].pledgor, "Address without registry");
+    function amortizePledge(uint256 amount, uint256 pledgeId) external virtual returns (uint256) {
+    require(msg.sender == pledges[pledgeId].pledgor, "Address without registry");
 
-        uint256 priceRaw = xagPrice.getXAGPriceUpdated();
+    uint256 totalDebtUSDC = (pledges[pledgeId].quantityInOunces * pledges[pledgeId].ouncePrice) / 1e14;
+    uint256 paidSoFar = paymentsMade[msg.sender][pledgeId];
+    uint256 paymentsLeft = totalDebtUSDC - paidSoFar;
 
-        uint256 amortizationAmount = pledges[pledgeId].quantityInOunces * priceRaw;
-        require(amount <= amortizationAmount, "Amount overflow");
+    require(amount <= paymentsLeft, "Amount overflow");
 
-        usdcAddress.transferFrom(msg.sender, address(this), amount);
+    usdcAddress.transferFrom(msg.sender, address(this), amount);
+    usdcAddress.approve(address(this), amount);
+    usdcAddress.transferFrom(address(this), address(lendingPool), amount);
 
-        usdcAddress.approve(address(this), amount);
-        usdcAddress.transferFrom(address(this), address(lendingPool), amount);
+    lendingPool.updateReserve(amount);
 
-        lendingPool.updateReserve(amount);
+    paymentsMade[msg.sender][pledgeId] += amount;
 
-        uint256 discount = (amount * 1e14) / priceRaw;
-        pledges[pledgeId].quantityInOunces -= discount;
-
-        if (amount == amortizationAmount){
-            pledges[pledgeId].redemptionApproved = true;
-        } else {
-            pledges[pledgeId].redemptionApproved = false;
-        }
+    if (paymentsMade[msg.sender][pledgeId] >= totalDebtUSDC) {
+        pledges[pledgeId].redemptionApproved = true;
+    } else {
+        pledges[pledgeId].redemptionApproved = false;
     }
+
+    return paymentsMade[msg.sender][pledgeId];
+}
+
+
 
 
 }

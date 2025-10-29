@@ -9,12 +9,12 @@ struct Pledge {
     uint256 redemptionDate;
     uint256 agreementId;
     bool redemptionApproved;
+    uint256 ouncePrice;
 }
 
 struct UserData{
     address user;
     uint256 principal;
-    //uint256 investorId;
 }
 
 contract DataStorage{
@@ -33,6 +33,7 @@ contract DataStorage{
     mapping(address => uint256) public rewards;
 
     mapping(address => uint256) public redemptions;
+    mapping(address => mapping(uint256 => uint256)) public paymentsMade;
 
     address[] public investors;
 
