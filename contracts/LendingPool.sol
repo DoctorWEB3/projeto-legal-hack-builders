@@ -2,14 +2,11 @@
 pragma solidity ^0.8.22;
 
 import './IERC20.sol';
-import './DataStorage.sol';
+import './LendingData.sol';
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-interface IDataStorage{
-    function receiveData(Pledge memory pledgeAdded, uint256 pledgeId) external;
-}
 
-contract LendingPool is DataStorage, ReentrancyGuard {
+contract LendingPool is LendingData, ReentrancyGuard {
 
     event PaymentReceived(address indexed payer, uint256 indexed amount);
     event RewardClaimed(address indexed investor, uint256 indexed reward);

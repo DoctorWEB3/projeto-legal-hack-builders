@@ -110,7 +110,7 @@ contract PledgePlatform is Silver, DataStorage{
     function executeWarranty(uint256 pledgeId) external onlyPledgee returns (bool) {
         require(pledgeId == pledges[pledgeId].agreementId, "This ID is not registered");
         if (pledges[pledgeId].redemptionApproved == true){
-            revert("Pledge is still active");
+            revert("Pledge is not active anymore");
         }
         require(block.timestamp >= pledges[pledgeId].redemptionDate, "The time to redemption is already elapsed");
 
