@@ -12,12 +12,7 @@ struct Pledge {
     uint256 ouncePrice;
 }
 
-struct UserData{
-    address user;
-    uint256 principal;
-}
-
-contract DataStorage{
+abstract contract DataStorage{
 
     address public pledgee;
     uint256 public agreementId = 1;
